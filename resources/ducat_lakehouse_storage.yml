@@ -1,0 +1,13 @@
+resources:
+  schemas:
+    ducat:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Ducat lakehouse bronze, silver and gold tables
+
+  volumes:
+    raw:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.ducat.name}
+      name: raw
+      comment: Synthetic CSV input written by the synth task

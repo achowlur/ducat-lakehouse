@@ -1,0 +1,83 @@
+resources:
+  jobs:
+    ducat_lakehouse_job:
+      name: ducat_lakehouse_job
+      max_concurrent_runs: 1
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.ducat.name}
+        - name: volume_path
+          default: /Volumes/${var.catalog}/${resources.schemas.ducat.name}/${resources.volumes.raw.name}
+        - name: users
+          default: "1000"
+        - name: months
+          default: "24"
+        - name: seed
+          default: "42"
+
+      tasks:
+        - task_key: synth
+          environment_key: default
+          python_wheel_task:
+            package_name: ducat_lakehouse
+            entry_point: synth
+            parameters:
+              - --volume-path
+              - "{{job.parameters.volume_path}}"
+              - --users
+              - "{{job.parameters.users}}"
+              - --months
+              - "{{job.parameters.months}}"
+              - --seed
+              - "{{job.parameters.seed}}"
+
+        - task_key: bronze
+          depends_on:
+            - task_key: synth
+          environment_key: default
+          python_wheel_task:
+            package_name: ducat_lakehouse
+            entry_point: bronze
+            parameters:
+              - --catalog
+              - "{{job.parameters.catalog}}"
+              - --schema
+              - "{{job.parameters.schema}}"
+              - --volume-path
+              - "{{job.parameters.volume_path}}"
+
+        - task_key: silver
+          depends_on:
+            - task_key: bronze
+          environment_key: default
+          python_wheel_task:
+            package_name: ducat_lakehouse
+            entry_point: silver
+            parameters:
+              - --catalog
+              - "{{job.parameters.catalog}}"
+              - --schema
+              - "{{job.parameters.schema}}"
+
+        - task_key: gold
+          depends_on:
+            - task_key: silver
+          environment_key: default
+          python_wheel_task:
+            package_name: ducat_lakehouse
+            entry_point: gold
+            parameters:
+              - --catalog
+              - "{{job.parameters.catalog}}"
+              - --schema
+              - "{{job.parameters.schema}}"
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "5"
+            dependencies:
+              - ../dist/*.whl

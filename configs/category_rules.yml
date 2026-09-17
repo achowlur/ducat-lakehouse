@@ -1,0 +1,51 @@
+rules:
+  - priority: 10
+    field: description
+    operator: contains
+    value: payroll
+    category: Income
+  - priority: 20
+    field: description
+    operator: starts_with
+    value: "transfer "
+    category: Transfer
+  - priority: 30
+    field: description
+    operator: contains
+    value: autopay payment
+    category: Transfer
+  - priority: 31
+    field: description
+    operator: equals
+    value: payment received thank you
+    category: Transfer
+  - priority: 40
+    field: merchant
+    operator: equals
+    value: Oakline Property Mgmt
+    category: Rent
+  - priority: 41
+    field: merchant
+    operator: contains
+    value: apartments
+    category: Rent
+  - priority: 50
+    field: merchant
+    operator: equals
+    value: FitHub Gym
+    category: Health & Fitness
+  - priority: 60
+    field: description
+    operator: contains
+    value: recurring
+    category: Subscriptions
+  - priority: 70
+    field: merchant
+    operator: regex
+    value: market|grocer
+    category: Groceries
+  - priority: 80
+    field: merchant
+    operator: regex
+    value: cafe|noodle|salad|pizza
+    category: Dining

@@ -1,0 +1,16 @@
+user_id,account_id,account_type,institution,opened_date
+u000000,u000000-chk,checking,Harbor Bank,2020-02-02
+u000000,u000000-sav,savings,Harbor Bank,2024-04-12
+u000000,u000000-crd,card,Beacon Card,2021-08-09
+u000001,u000001-chk,checking,Harbor Bank,2019-07-23
+u000001,u000001-sav,savings,Harbor Bank,2017-01-09
+u000001,u000001-crd,card,Beacon Card,2018-03-10
+u000002,u000002-chk,checking,Summit Credit Union,2024-07-11
+u000002,u000002-sav,savings,Summit Credit Union,2021-10-19
+u000002,u000002-crd,card,Beacon Card,2019-03-17
+u000003,u000003-chk,checking,Prairie Savings,2024-05-03
+u000003,u000003-sav,savings,Prairie Savings,2018-12-05
+u000003,u000003-crd,card,Beacon Card,2019-03-08
+u000004,u000004-chk,checking,Summit Credit Union,2016-07-26
+u000004,u000004-sav,savings,Summit Credit Union,2022-10-23
+u000004,u000004-crd,card,Beacon Card,2019-08-21

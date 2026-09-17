@@ -1,0 +1,6 @@
+catalog: workspace
+schema: ducat
+transfer_window_days: 4
+anomaly_z_threshold: 3
+anomaly_window_days: 90
+anomaly_min_history: 5
