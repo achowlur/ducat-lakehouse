@@ -60,10 +60,10 @@ starts only when an account's balance changes. Each version has a surrogate key
 expands each version over the days it was valid and keeps only days where all of a user's
 accounts are known.
 
-**Anomalies.** Each outflow's amount is scored as a z-score against the same user and
-category over the trailing 90 days, excluding its own day. A score needs at least 5 prior
-outflows and a non-zero spread; above `anomaly_z_threshold` (3) it is flagged.
-`gold_anomaly_recall` reports planted, caught, flagged, recall and precision.
+**Anomalies.** Each outflow is z-scored against the same user and category, excluding its
+own day: over the trailing 90 days if they hold 5 or more outflows, else over the category's
+whole prior history. Under 5 prior outflows or zero spread means no score; above
+`anomaly_z_threshold` (3) is flagged. `gold_anomaly_recall` reports recall and precision.
 
 ## Synthetic data
 

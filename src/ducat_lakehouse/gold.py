@@ -51,24 +51,41 @@ def net_worth_daily(history: DataFrame) -> DataFrame:
 
 
 def score_anomalies(txns: DataFrame, cfg: PipelineConfig) -> DataFrame:
-    """z-score of each outflow against the same user and category over the trailing window, excluding its own day."""
-    trailing = (
-        Window.partitionBy("user_id", "category").orderBy("_day").rangeBetween(-cfg.anomaly_window_days, -1)
-    )
+    """z-score of each outflow against the same user and category, excluding its own day.
+
+    The baseline is the trailing anomaly_window_days when they hold at least
+    anomaly_min_history outflows, otherwise the category's whole prior history,
+    so sparse categories are still scored. rules.outflow_z_score is the reference.
+    """
+    category = Window.partitionBy("user_id", "category").orderBy("_day")
+    recent = category.rangeBetween(-cfg.anomaly_window_days, -1)
+    history = category.rangeBetween(Window.unboundedPreceding, -1)
+    use_recent = F.col("_recent_count") >= cfg.anomaly_min_history
+
+    def pick(name):
+        return F.when(use_recent, F.col(f"_recent_{name}")).otherwise(F.col(f"_history_{name}"))
+
     z_score = (F.col("magnitude") - F.col("baseline_mean")) / F.col("baseline_stddev")
     return (
         txns.filter(F.col("flow") == "outflow")
         .withColumn("magnitude", (-F.col("amount")).cast("double"))
         .withColumn("_day", F.datediff(F.col("posted_date"), F.to_date(F.lit("1970-01-01"))))
-        .withColumn("baseline_mean", F.avg("magnitude").over(trailing))
-        .withColumn("baseline_stddev", F.stddev_samp("magnitude").over(trailing))
-        .withColumn("baseline_count", F.count("magnitude").over(trailing))
+        .withColumn("_recent_count", F.count("magnitude").over(recent))
+        .withColumn("_recent_mean", F.avg("magnitude").over(recent))
+        .withColumn("_recent_stddev", F.stddev_samp("magnitude").over(recent))
+        .withColumn("_history_count", F.count("magnitude").over(history))
+        .withColumn("_history_mean", F.avg("magnitude").over(history))
+        .withColumn("_history_stddev", F.stddev_samp("magnitude").over(history))
+        .withColumn("baseline_scope", F.when(use_recent, "recent").otherwise("history"))
+        .withColumn("baseline_count", pick("count"))
+        .withColumn("baseline_mean", pick("mean"))
+        .withColumn("baseline_stddev", pick("stddev"))
         .withColumn(
             "z_score",
             F.when((F.col("baseline_count") >= cfg.anomaly_min_history) & (F.col("baseline_stddev") > 0), z_score),
         )
         .withColumn("is_anomaly", F.coalesce(F.col("z_score") > cfg.anomaly_z_threshold, F.lit(False)))
-        .drop("_day")
+        .drop("_day", *[f"_{scope}_{name}" for scope in ("recent", "history") for name in ("count", "mean", "stddev")])
     )
 
 
@@ -103,7 +120,7 @@ def main(argv=None) -> None:
     scored = score_anomalies(txns, cfg)
     anomalies = scored.filter("is_anomaly").select(
         "user_id", "account_id", "transaction_id", "posted_date", "merchant", "category", "amount", "magnitude",
-        "baseline_mean", "baseline_stddev", "baseline_count", "z_score",
+        "baseline_scope", "baseline_mean", "baseline_stddev", "baseline_count", "z_score",
     )
     write_table(anomalies, cfg.table("gold_anomalies"))
     write_table(anomaly_recall(scored, cfg), cfg.table("gold_anomaly_recall"))
