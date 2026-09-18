@@ -1,5 +1,7 @@
 # ducat-lakehouse
 
+[![ci](https://github.com/achowlur/ducat-lakehouse/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/achowlur/ducat-lakehouse/actions/workflows/ci.yml)
+
 The pipeline layer of [Ducat](https://github.com/achowlur/ducat)'s personal-finance insights
 engine, rebuilt on Databricks for many users. Ducat is a local-first, single-user app; this
 repo takes its analytics rules (rule-based categorization, transfer pairing, SCD2 balance
