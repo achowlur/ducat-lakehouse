@@ -115,6 +115,5 @@ Pipeline settings live in `configs/pipeline.yml` and are packaged into the wheel
 - Mondays 14:00 UTC (and on demand): validate again, and fail if the workspace token
   commented `github-actions` expires within 14 days.
 
-Credentials come from the `DATABRICKS_HOST` and `DATABRICKS_TOKEN` repository secrets,
-never from a file. To rotate the token, generate a new one with the same comment and
-replace the `DATABRICKS_TOKEN` secret.
+Credentials come from the `DATABRICKS_HOST` and `DATABRICKS_TOKEN` repository secrets, never
+from a file. To rotate, generate a token with the same comment and replace the secret.
