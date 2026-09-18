@@ -1,13 +1,14 @@
-"""Pure-Python rule matching, input validators and transfer pairing.
+"""Pure-Python rule matching, input validators, transfer pairing and the anomaly baseline.
 
-Nothing here imports Spark: silver.py expresses the same semantics as Spark
-expressions, and the tests pin the semantics here.
+Nothing here imports Spark: silver.py and gold.py express the same semantics as
+Spark expressions, and the tests pin the semantics here.
 """
 
 from __future__ import annotations
 
 import math
 import re
+import statistics
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
@@ -230,3 +231,19 @@ def pair_transfers(transactions: Iterable[Mapping], window_days: int = 4) -> dic
             partners[out_id] = in_id
             partners[in_id] = out_id
     return partners
+
+
+def outflow_z_score(
+    magnitude: float, recent: Sequence[float], history: Sequence[float], min_history: int = 5
+) -> float | None:
+    """Reference for gold.score_anomalies: the recent window when it holds min_history
+    outflows, otherwise all prior history; None when neither baseline qualifies or it
+    has no spread. history includes recent. Uses the sample standard deviation.
+    """
+    baseline = recent if len(recent) >= min_history else history
+    if len(baseline) < min_history:
+        return None
+    spread = statistics.stdev(baseline)
+    if spread == 0:
+        return None
+    return (magnitude - statistics.fmean(baseline)) / spread
