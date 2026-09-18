@@ -5,6 +5,9 @@ on:
     branches: [main]
   push:
     branches: [main]
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
 
 jobs:
   test:
@@ -28,7 +31,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - uses: databricks/setup-cli@main
+      - name: setup databricks cli v1.17.0
+        uses: databricks/setup-cli@d76f84cea9893ce68311a1f33fb0c95af6c963b7
       - name: bundle validate
         run: databricks bundle validate -t dev
         env:
@@ -40,3 +44,37 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      - name: bundle run
+        if: github.event_name == 'push'
+        run: databricks bundle run ducat_lakehouse_job -t dev
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+  token-expiry:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: setup databricks cli v1.17.0
+        uses: databricks/setup-cli@d76f84cea9893ce68311a1f33fb0c95af6c963b7
+      - name: fail when the github-actions token expires within 14 days
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          expiry=$(databricks tokens list --output json | jq -r '[.[] | select(.comment == "github-actions") | .expiry_time] | max // empty')
+          if [ -z "$expiry" ]; then
+            echo "::error::No workspace token has the comment github-actions; the CI token cannot be checked."
+            exit 1
+          fi
+          if [ "$expiry" -le 0 ]; then
+            echo "::notice::The github-actions token does not expire."
+            exit 0
+          fi
+          days=$(( (expiry / 1000 - $(date +%s)) / 86400 ))
+          expires_on=$(date -u -d "@$((expiry / 1000))" +%Y-%m-%d)
+          if [ "$days" -lt 14 ]; then
+            echo "::error::The github-actions token expires on $expires_on ($days days). Generate a new one and replace the DATABRICKS_TOKEN secret."
+            exit 1
+          fi
+          echo "::notice::The github-actions token expires on $expires_on ($days days)."

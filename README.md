@@ -106,7 +106,14 @@ Pipeline settings live in `configs/pipeline.yml` and are packaged into the wheel
 
 ## CI
 
-`.github/workflows/ci.yml` runs `pytest` on every pull request and push to `main`, then
-`databricks bundle validate -t dev`. On push to `main` it also runs
-`databricks bundle deploy -t dev`. Credentials come from the `DATABRICKS_HOST` and
-`DATABRICKS_TOKEN` repository secrets, never from a file.
+`.github/workflows/ci.yml`, with the Databricks CLI action pinned to a commit:
+
+- Every pull request and push to `main`: `pytest`, then `databricks bundle validate -t dev`.
+  `main` accepts changes only through a pull request with both checks green.
+- Push to `main`: also `databricks bundle deploy -t dev` and a full `bundle run` of the job,
+  so every merge is proven end to end on the workspace.
+- Mondays 14:00 UTC (and on demand): validate again, and fail if the workspace token
+  commented `github-actions` expires within 14 days.
+
+Credentials come from the `DATABRICKS_HOST` and `DATABRICKS_TOKEN` repository secrets, never
+from a file. To rotate, generate a token with the same comment and replace the secret.
